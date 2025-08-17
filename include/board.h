@@ -12,8 +12,8 @@ extern "C" {
 void Board_Init(void);
 
 // LED configuration: change these macros to move the LED to another pin
-#define LED_GPIO_PORT GPIOC
-#define LED_PIN       GPIO_PIN_13
+#define LED_GPIO_PORT GPIOA
+#define LED_PIN       GPIO_PIN_0
 // Set to 1 if the LED is active low (MCU pin low turns LED on)
 #define LED_ACTIVE_LOW 1
 
