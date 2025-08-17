@@ -2,6 +2,7 @@
 #define __BOARD_H
 
 #include "stm32f1xx_hal.h"
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,6 +10,15 @@ extern "C" {
 
 // Initialize HAL, clocks and minimal board peripherals used by examples
 void Board_Init(void);
+
+// LED configuration: change these macros to move the LED to another pin
+#define LED_GPIO_PORT GPIOC
+#define LED_PIN       GPIO_PIN_13
+// Set to 1 if the LED is active low (MCU pin low turns LED on)
+#define LED_ACTIVE_LOW 1
+
+// Control LED (true = on, false = off) — hides active-low detail
+void Board_SetLed(bool on);
 
 // Expose error handler (used by HAL callbacks)
 void Error_Handler(void);
