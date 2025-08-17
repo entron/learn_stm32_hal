@@ -5,10 +5,10 @@ int main(void)
   // initialize HAL, clocks and basic peripherals
   Board_Init();
 
-  // PC13 LED is active-LOW on most Blue Pills
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET); // LED off
+  // PA0 is connected to the LED cathode (active-LOW). Drive high to keep LED off.
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0, GPIO_PIN_SET); // LED off (PA0 high)
   while (1) {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    HAL_Delay(200);
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
+    HAL_Delay(1000);
   }
 }

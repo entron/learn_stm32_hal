@@ -6,7 +6,7 @@ void Board_Init(void)
 {
   HAL_Init();                 // init HAL & SysTick
   SystemClock_Config();       // set system clocks
-  MX_GPIO_Init();             // PC13 as output (LED)
+  MX_GPIO_Init();             // PA0 as output (user GPIO)
 }
 
 void SystemClock_Config(void)
@@ -32,13 +32,13 @@ void SystemClock_Config(void)
 
 static void MX_GPIO_Init(void)
 {
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pin   = GPIO_PIN_13;
+  GPIO_InitStruct.Pin   = GPIO_PIN_0;
   GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
 void Error_Handler(void)
@@ -46,7 +46,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1) {
     // slow blink to signal error
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
     HAL_Delay(200);
   }
 }
