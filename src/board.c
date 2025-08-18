@@ -35,28 +35,15 @@ static void MX_GPIO_Init(void)
   // Enable common GPIO clocks (safe default). If you need minimal clocks,
   // enable only the port required by the LED macro.
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOC_CLK_ENABLE();
+  // __HAL_RCC_GPIOB_CLK_ENABLE();
+  // __HAL_RCC_GPIOC_CLK_ENABLE();
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  // Initialize PA0..PA5 as outputs so multiple LEDs can be driven.
-  uint16_t pins = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5;
-  GPIO_InitStruct.Pin   = pins;
+  GPIO_InitStruct.Pin   = LED_PIN;
   GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 }
-
-void Error_Handler(void)
-{
-  __disable_irq();
-  while (1) {
-    // slow blink to signal error
-    HAL_GPIO_TogglePin(LED_GPIO_PORT, LED_PIN);
-    HAL_Delay(200);
-  }
-}
-
 
 void Board_SetLed(bool on)
 {
@@ -71,4 +58,9 @@ void Board_SetLed(bool on)
 // Make HAL_Delay() advance
 void SysTick_Handler(void) {
   HAL_IncTick();
+}
+
+void Error_Handler(void) {
+  __disable_irq();
+  while (1) { }
 }
