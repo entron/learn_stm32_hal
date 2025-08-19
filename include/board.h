@@ -22,11 +22,23 @@ void Board_Init(void);
 #define KEY_GPIO_PORT GPIOB
 #define KEY_PINS (GPIO_PIN_11 | GPIO_PIN_1)
 
+// Buzzer configuration: PB12
+#define BUZZER_GPIO_PORT GPIOB
+#define BUZZER_PIN GPIO_PIN_12
+// Set to 1 if the buzzer is active low (MCU pin low turns buzzer on)
+#define BUZZER_ACTIVE_LOW 1
+
 // Control LED (true = on, false = off) — hides active-low detail
 void Board_SetLed(bool on);
 
 // Set specific LED pin to low (on) or high (off)
 void Board_SetLedPin(uint16_t pin, bool on);
+
+// Buzzer control
+// Initialize buzzer GPIO (call from Board_Init)
+void Board_Buzzer_Init(void);
+// Control buzzer (true = on, false = off)
+void Board_Buzzer_Set(bool on);
 
 // Expose error handler (used by HAL callbacks)
 void Error_Handler(void);
