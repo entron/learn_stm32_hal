@@ -54,6 +54,15 @@ void Board_SetLed(bool on)
 #endif
 }
 
+// Set specific LED pin to low (on) or high (off)
+void Board_SetLedPin(uint16_t pin, bool on)
+{
+#if LED_ACTIVE_LOW
+  HAL_GPIO_WritePin(LED_GPIO_PORT, pin, on ? GPIO_PIN_RESET : GPIO_PIN_SET);
+#else
+  HAL_GPIO_WritePin(LED_GPIO_PORT, pin, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+#endif
+}
 
 // Make HAL_Delay() advance
 void SysTick_Handler(void) {

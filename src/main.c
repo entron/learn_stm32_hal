@@ -4,25 +4,21 @@ int main(void)
 {
   // initialize HAL, clocks and basic peripherals
   Board_Init();
+  
+  // After initialization, the LED is on but we will turn it off
+  Board_SetLed(false);
 
-  // Array of pins for PA0 to PA5
-  const uint16_t led_pins[] = {
-    GPIO_PIN_0, GPIO_PIN_1, GPIO_PIN_2, GPIO_PIN_3, GPIO_PIN_4, GPIO_PIN_5
-  };
-  const int num_leds = sizeof(led_pins)/sizeof(led_pins[0]);
+  // After 2 seconds, turn only A1 LED on
+  HAL_Delay(2000);
+  Board_SetLedPin(GPIO_PIN_1, true);
 
-  // Turn all LEDs off (active-low)
-  for (int i = 0; i < num_leds; ++i) {
-    HAL_GPIO_WritePin(GPIOA, led_pins[i], GPIO_PIN_SET);
-  }
+  // After another 2 seconds, turn A1 LED off and turn A2 LED on
+  HAL_Delay(2000);
+  Board_SetLedPin(GPIO_PIN_1, false);
+  Board_SetLedPin(GPIO_PIN_2, true);
 
-  int current = 0;
-  while (1) {
-    // Turn previous LED off
-    HAL_GPIO_WritePin(GPIOA, led_pins[(current+num_leds-1)%num_leds], GPIO_PIN_SET);
-    // Turn current LED on
-    HAL_GPIO_WritePin(GPIOA, led_pins[current], GPIO_PIN_RESET);
-    HAL_Delay(150);
-    current = (current+1) % num_leds;
-  }
+  // After another 2 seconds, turn A2 LED off
+  HAL_Delay(2000);
+  Board_SetLedPin(GPIO_PIN_2, false);
+
 }

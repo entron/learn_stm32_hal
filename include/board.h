@@ -13,12 +13,15 @@ void Board_Init(void);
 
 // LED configuration: change these macros to move the LED to another pin
 #define LED_GPIO_PORT GPIOA
-#define LED_PIN  GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_2 | GPIO_PIN_3 | GPIO_PIN_4 | GPIO_PIN_5
+#define LED_PIN  GPIO_PIN_1 | GPIO_PIN_2
 // Set to 1 if the LED is active low (MCU pin low turns LED on)
 #define LED_ACTIVE_LOW 1
 
 // Control LED (true = on, false = off) — hides active-low detail
 void Board_SetLed(bool on);
+
+// Set specific LED pin to low (on) or high (off)
+void Board_SetLedPin(uint16_t pin, bool on);
 
 // Expose error handler (used by HAL callbacks)
 void Error_Handler(void);
