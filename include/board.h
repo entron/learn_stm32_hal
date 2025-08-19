@@ -40,6 +40,17 @@ void Board_Buzzer_Init(void);
 // Control buzzer (true = on, false = off)
 void Board_Buzzer_Set(bool on);
 
+// Light sensor (digital output) on PB13
+#define LIGHT_SENSOR_GPIO_PORT GPIOB
+#define LIGHT_SENSOR_PIN GPIO_PIN_13
+// Set to 1 if sensor DO is active high (DO = HIGH when light detected)
+#define LIGHT_SENSOR_ACTIVE_HIGH 0
+
+// Initialize digital light sensor input (call from Board_Init)
+void Board_Light_Init(void);
+// Read digital light sensor (true = light detected)
+bool Board_Light_Read(void);
+
 // Expose error handler (used by HAL callbacks)
 void Error_Handler(void);
 

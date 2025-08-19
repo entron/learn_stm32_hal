@@ -3,6 +3,7 @@
 static void LED_Init(void);
 static void Keys_Init(void);
 static void Buzzer_Init(void);
+static void Light_Init(void);
 
 void Board_Init(void)
 {
@@ -11,6 +12,7 @@ void Board_Init(void)
   LED_Init();                 // init LED GPIOs
   Keys_Init();                // init user keys (B11, B1)
   Buzzer_Init();              // init buzzer on PB12
+  Light_Init();               // init digital light sensor on PB13
 }
 
 void SystemClock_Config(void)
@@ -86,6 +88,29 @@ void Board_Buzzer_Set(bool on)
   HAL_GPIO_WritePin(BUZZER_GPIO_PORT, BUZZER_PIN, on ? GPIO_PIN_RESET : GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(BUZZER_GPIO_PORT, BUZZER_PIN, on ? GPIO_PIN_SET : GPIO_PIN_RESET);
+#endif
+}
+
+// Initialize digital light sensor input on PB13
+static void Light_Init(void)
+{
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin  = LIGHT_SENSOR_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  // Use no pull by default; change to GPIO_PULLDOWN or GPIO_PULLUP as needed
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(LIGHT_SENSOR_GPIO_PORT, &GPIO_InitStruct);
+}
+
+// Read digital light sensor: return true when sensor reports light present
+bool Board_Light_Read(void)
+{
+#if LIGHT_SENSOR_ACTIVE_HIGH
+  return HAL_GPIO_ReadPin(LIGHT_SENSOR_GPIO_PORT, LIGHT_SENSOR_PIN) == GPIO_PIN_SET;
+#else
+  return HAL_GPIO_ReadPin(LIGHT_SENSOR_GPIO_PORT, LIGHT_SENSOR_PIN) == GPIO_PIN_RESET;
 #endif
 }
 

@@ -14,10 +14,14 @@ int main(void)
     bool key_b11_pressed = (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_11) == GPIO_PIN_RESET);
     bool key_b1_pressed  = (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_1)  == GPIO_PIN_RESET);
 
-    // Update LEDs: when button pressed -> LED on; when released -> LED off
-    Board_SetLedPin(GPIO_PIN_1, key_b11_pressed);
-    Board_SetLedPin(GPIO_PIN_2, key_b1_pressed);
+  // Update LEDs: when button pressed -> LED on; when released -> LED off
+  Board_SetLedPin(GPIO_PIN_1, key_b11_pressed);
+  Board_SetLedPin(GPIO_PIN_2, key_b1_pressed);
 
-    HAL_Delay(10); // simple polling interval / basic debounce
+  // Read light sensor and control buzzer: if there is NO light, activate buzzer
+  bool light_present = Board_Light_Read();
+  Board_Buzzer_Set(!light_present);
+
+  HAL_Delay(10); // simple polling interval / basic debounce
   }
 }
