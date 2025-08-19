@@ -11,11 +11,16 @@ extern "C" {
 // Initialize HAL, clocks and minimal board peripherals used by examples
 void Board_Init(void);
 
+
 // LED configuration: change these macros to move the LED to another pin
 #define LED_GPIO_PORT GPIOA
 #define LED_PIN  GPIO_PIN_1 | GPIO_PIN_2
 // Set to 1 if the LED is active low (MCU pin low turns LED on)
 #define LED_ACTIVE_LOW 1
+
+// Keys/buttons configuration: B11 and B1
+#define KEY_GPIO_PORT GPIOB
+#define KEY_PINS (GPIO_PIN_11 | GPIO_PIN_1)
 
 // Control LED (true = on, false = off) — hides active-low detail
 void Board_SetLed(bool on);

@@ -2,23 +2,22 @@
 
 int main(void)
 {
-  // initialize HAL, clocks and basic peripherals
+  // initialize HAL, clocks and minimal board peripherals
   Board_Init();
-  
-  // After initialization, the LED is on but we will turn it off
+
+  // Ensure LEDs start off
   Board_SetLed(false);
 
-  // After 2 seconds, turn only A1 LED on
-  HAL_Delay(2000);
-  Board_SetLedPin(GPIO_PIN_1, true);
+  // Poll keys and control LEDs: B11 -> LED pin PA1, B1 -> LED pin PA2
+  for (;;) {
+    // Keys are configured with pull-up; pressed == LOW (GPIO_PIN_RESET)
+    bool key_b11_pressed = (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_11) == GPIO_PIN_RESET);
+    bool key_b1_pressed  = (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_1)  == GPIO_PIN_RESET);
 
-  // After another 2 seconds, turn A1 LED off and turn A2 LED on
-  HAL_Delay(2000);
-  Board_SetLedPin(GPIO_PIN_1, false);
-  Board_SetLedPin(GPIO_PIN_2, true);
+    // Update LEDs: when button pressed -> LED on; when released -> LED off
+    Board_SetLedPin(GPIO_PIN_1, key_b11_pressed);
+    Board_SetLedPin(GPIO_PIN_2, key_b1_pressed);
 
-  // After another 2 seconds, turn A2 LED off
-  HAL_Delay(2000);
-  Board_SetLedPin(GPIO_PIN_2, false);
-
+    HAL_Delay(10); // simple polling interval / basic debounce
+  }
 }

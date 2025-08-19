@@ -1,12 +1,14 @@
 #include "board.h"
 
-static void MX_GPIO_Init(void);
+static void LED_Init(void);
+static void Keys_Init(void);
 
 void Board_Init(void)
 {
   HAL_Init();                 // init HAL & SysTick
   SystemClock_Config();       // set system clocks
-  MX_GPIO_Init();             // PA0 as output (user GPIO)
+  LED_Init();                 // init LED GPIOs
+  Keys_Init();                // init user keys (B11, B1)
 }
 
 void SystemClock_Config(void)
@@ -30,19 +32,29 @@ void SystemClock_Config(void)
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) Error_Handler();
 }
 
-static void MX_GPIO_Init(void)
+static void LED_Init(void)
 {
-  // Enable common GPIO clocks (safe default). If you need minimal clocks,
-  // enable only the port required by the LED macro.
+  // Enable GPIOA clock for LEDs. If you add more ports, enable them here.
   __HAL_RCC_GPIOA_CLK_ENABLE();
-  // __HAL_RCC_GPIOB_CLK_ENABLE();
-  // __HAL_RCC_GPIOC_CLK_ENABLE();
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
   GPIO_InitStruct.Pin   = LED_PIN;
   GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
+}
+
+// Initialize keys/buttons on GPIOB pins B11 and B1.
+// Assumption: buttons are wired to ground when pressed and need internal pull-up.
+static void Keys_Init(void)
+{
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin  = KEY_PINS;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP; // use pull-up; pressed = LOW
+  HAL_GPIO_Init(KEY_GPIO_PORT, &GPIO_InitStruct);
 }
 
 void Board_SetLed(bool on)
