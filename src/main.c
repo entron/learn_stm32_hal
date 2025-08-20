@@ -1,41 +1,62 @@
-// Minimal servo demo on PA1 (TIM2_CH2) with button control on PB1
+// Servo and Motor demo with button control
+// B1 controls servo angle, B11 controls motor speed
 #include "board.h"
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 #include <stdio.h>
 
-// Global variables for servo control
+// Global variables for control
 static volatile int servo_angle = 0;
-static volatile bool button_pressed = false;
+static volatile int8_t motor_speed = 0;
+static volatile bool button_b1_pressed = false;
+static volatile bool button_b11_pressed = false;
 
-static void OLED_ShowAngle(int angle) {
-  char buf[20];
+static void OLED_ShowStatus(int angle, int8_t speed) {
+  char buf[64];
   ssd1306_Fill(Black);
   ssd1306_SetCursor(0, 0);
-  snprintf(buf, sizeof(buf), "Angle: %d", angle);
+  snprintf(buf, sizeof(buf), "Servo: %d°", angle);
   ssd1306_WriteString(buf, Font_11x18, White);
+  ssd1306_SetCursor(0, 20);
+  snprintf(buf, sizeof(buf), "Motor: %d%%", speed);
+  ssd1306_WriteString(buf, Font_11x18, White);
+  ssd1306_SetCursor(0, 40);
+  ssd1306_WriteString("B1:Servo B11:Motor", Font_7x10, White);
   ssd1306_UpdateScreen();
 }
 
 // GPIO EXTI callback function - called when button is pressed/released
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-  static uint32_t last_interrupt_time = 0;
+  static uint32_t last_interrupt_time_b1 = 0;
+  static uint32_t last_interrupt_time_b11 = 0;
   uint32_t current_time = HAL_GetTick();
   
-  // Debounce: ignore interrupts that occur within 200ms of the last one
-  if (current_time - last_interrupt_time < 200) {
-    return;
-  }
-  
   if (GPIO_Pin == GPIO_PIN_1) {
+    // Debounce: ignore interrupts that occur within 200ms of the last one
+    if (current_time - last_interrupt_time_b1 < 200) {
+      return;
+    }
+    
     // Check if button is actually pressed (pin goes LOW when pressed due to pull-up)
     if (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_1) == GPIO_PIN_RESET) {
-      button_pressed = true;
+      button_b1_pressed = true;
     }
+    last_interrupt_time_b1 = current_time;
   }
   
-  last_interrupt_time = current_time;
+  if (GPIO_Pin == GPIO_PIN_11) {
+    // Debounce: ignore interrupts that occur within 200ms of the last one
+    if (current_time - last_interrupt_time_b11 < 200) {
+      return;
+    }
+    
+    // Check if button is actually pressed (pin goes LOW when pressed due to pull-up)
+    if (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_11) == GPIO_PIN_RESET) {
+      button_b11_pressed = true;
+    }
+    last_interrupt_time_b11 = current_time;
+  }
 }
 
 int main(void)
@@ -45,16 +66,17 @@ int main(void)
   /* Initialize OLED after I2C is ready */
   ssd1306_Init();
 
-  // Initialize servo and set initial position
+  // Initialize servo and motor to initial positions
   Servo_WriteDegrees((float)servo_angle);
-  OLED_ShowAngle(servo_angle);
+  Motor_SetSpeed(motor_speed);
+  OLED_ShowStatus(servo_angle, motor_speed);
 
-  // Main loop - check for button presses and update servo
+  // Main loop - check for button presses and update servo/motor
   while (1) {
-    if (button_pressed) {
-      button_pressed = false;  // Clear the flag
+    if (button_b1_pressed) {
+      button_b1_pressed = false;  // Clear the flag
       
-      // Increase angle by 30 degrees
+      // Increase servo angle by 30 degrees
       servo_angle += 30;
       
       // Wrap around when 180 is reached
@@ -64,7 +86,28 @@ int main(void)
       
       // Update servo position and display
       Servo_WriteDegrees((float)servo_angle);
-      OLED_ShowAngle(servo_angle);
+      OLED_ShowStatus(servo_angle, motor_speed);
+    }
+    
+    if (button_b11_pressed) {
+      button_b11_pressed = false;  // Clear the flag
+      
+      // Cycle through motor speeds: 0 -> 50 -> 100 -> -50 -> -100 -> 0
+      if (motor_speed == 0) {
+        motor_speed = 20;
+      } else if (motor_speed == 20) {
+        motor_speed = 50;
+      } else if (motor_speed == 50) {
+        motor_speed = -20;
+      } else if (motor_speed == -20) {
+        motor_speed = -50;
+      } else {
+        motor_speed = 0;
+      }
+      
+      // Update motor speed and display
+      Motor_SetSpeed(motor_speed);
+      OLED_ShowStatus(servo_angle, motor_speed);
     }
     
     // Small delay to prevent busy waiting
