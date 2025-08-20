@@ -23,6 +23,12 @@ int main(void)
   // Ensure LEDs start off
   Board_SetLed(false);
 
+  // Breathing LED PWM state
+  uint16_t breath_val = 0;      // 0..1000 logical brightness
+  int8_t breath_dir = 1;        // 1 = up, -1 = down
+  const uint16_t breath_max = 1000; // matches TIM2 ARR+1
+  const uint16_t step = 4;      // adjust for speed
+
   // Initialize OLED (SSD1306)
   ssd1306_Init();
   ssd1306_Fill(Black);
@@ -37,6 +43,16 @@ int main(void)
 
   for (;;)
   {
+  // Update breathing PWM every loop (linear)
+  Board_LED_SetBrightness(breath_val);
+
+    // Advance triangle wave
+    if (breath_dir > 0) {
+      if (breath_val + step < breath_max) breath_val += step; else { breath_val = breath_max; breath_dir = -1; }
+    } else {
+      if (breath_val > step) breath_val -= step; else { breath_val = 0; breath_dir = 1; }
+    }
+
     if (g_key_state_changed == true)
     {
       g_key_state_changed = false; // Reset flag
@@ -68,14 +84,10 @@ int main(void)
       ssd1306_WriteString(buf3, Font_6x8, White);
       ssd1306_UpdateScreen();
 
-      // Update LEDs according to the stored button state
-      bool key_b11_pressed = g_key_b11_pressed;
-      bool key_b1_pressed = g_key_b1_pressed;
-      Board_SetLedPin(GPIO_PIN_1, key_b11_pressed);
-      Board_SetLedPin(GPIO_PIN_2, key_b1_pressed);
+  // LED on PA0 now runs breathing PWM; keep keys just for display
     }
 
-    HAL_Delay(50);
+  HAL_Delay(5);
   }
 }
 
@@ -109,10 +121,10 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   }
 }
 
-// HAL timer period elapsed callback — called from TIM2 IRQ at 1 Hz.
+// HAL timer period elapsed callback — called from 1 Hz timer (TIM3)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  if (htim->Instance == TIM2)
+  if (htim->Instance == TIM3)
   {
     g_timer_seconds++;
     g_key_state_changed = true; // request OLED refresh in main loop

@@ -5,6 +5,7 @@
 
 I2C_HandleTypeDef hi2c1;
 TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim3;
 
 static void I2C1_Init(void);
 
@@ -13,18 +14,20 @@ static void Keys_Init(void);
 static void Buzzer_Init(void);
 static void Light_Init(void);
 static void IR_Init(void);
-static void Timer2_Init(void);
+static void Timer3_Init(void);
+static void LED_PWM_TIM2_Init(void);
 
 void Board_Init(void)
 {
   HAL_Init();                 // init HAL & SysTick
   SystemClock_Config();       // set system clocks
-  LED_Init();                 // init LED GPIOs
+  LED_Init();                 // init LED GPIOs (PA0 as AF_PP for TIM2_CH1)
   Keys_Init();                // init user keys (B11, B1)
   Buzzer_Init();              // init buzzer on PB12
   Light_Init();               // init digital light sensor on PB13
   IR_Init();                  // init through-beam IR sensor on PB14
-  Timer2_Init();              // init TIM2 as 1 Hz timer (updates display)
+  Timer3_Init();              // init TIM3 as 1 Hz timer (updates display)
+  LED_PWM_TIM2_Init();        // init TIM2 PWM for breathing LED
   I2C1_Init();               // init I2C1 used for external peripherals
 }
 
@@ -89,9 +92,10 @@ static void LED_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  GPIO_InitStruct.Pin   = LED_PIN;
-  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  // Configure PA0 as Alternate Function Push-Pull for TIM2_CH1 PWM output
+  GPIO_InitStruct.Pin   = LED_PIN; // PA0
+  GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
   HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 }
 
@@ -177,29 +181,73 @@ static void IR_Init(void)
   /* EXTI15_10_IRQn already enabled in Keys_Init; line 14 will be handled there */
 }
 
-// Configure TIM2 to generate update interrupt at 1 Hz
-static void Timer2_Init(void)
+// Configure TIM3 to generate update interrupt at 1 Hz
+static void Timer3_Init(void)
+{
+  __HAL_RCC_TIM3_CLK_ENABLE();
+
+  htim3.Instance = TIM3;
+  // With HSI 8 MHz and APB1 prescaler = 1, TIM3 clock = 8 MHz
+  // Prescaler 8000-1 -> 1 kHz counter clock; Period 1000-1 -> 1 Hz update
+  htim3.Init.Prescaler = 8000 - 1;
+  htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim3.Init.Period = 1000 - 1;
+  htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK) {
+    Error_Handler();
+  }
+
+  HAL_NVIC_SetPriority(TIM3_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+
+  if (HAL_TIM_Base_Start_IT(&htim3) != HAL_OK) {
+    Error_Handler();
+  }
+}
+
+// Configure TIM2 CH1 (PA0) for PWM output at ~1 kHz, 1000 steps resolution
+static void LED_PWM_TIM2_Init(void)
 {
   __HAL_RCC_TIM2_CLK_ENABLE();
 
   htim2.Instance = TIM2;
-  // With HSI 8 MHz and APB1 prescaler = 1, TIM2 clock = 8 MHz
-  // Prescaler 8000-1 -> 1 kHz counter clock; Period 1000-1 -> 1 Hz update
-  htim2.Init.Prescaler = 8000 - 1;
+  // Timer clock: 8 MHz (APB1 prescaler = 1), set to 1 kHz PWM: PSC=8-1 -> 1 MHz, ARR=1000-1 -> 1 kHz
+  htim2.Init.Prescaler = 8 - 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1000 - 1;
+  htim2.Init.Period = 1000 - 1; // 0..999
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-  if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+  if (HAL_TIM_PWM_Init(&htim2) != HAL_OK) {
     Error_Handler();
   }
 
-  HAL_NVIC_SetPriority(TIM2_IRQn, 3, 0);
-  HAL_NVIC_EnableIRQ(TIM2_IRQn);
-
-  if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK) {
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
+  sConfigOC.Pulse = 0; // start off
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) {
     Error_Handler();
   }
+
+  if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) != HAL_OK) {
+    Error_Handler();
+  }
+}
+
+// Public helpers for LED PWM
+void Board_LED_PWM_Init(void)
+{
+  // Already initialized in Board_Init via LED_PWM_TIM2_Init(); keep function for API completeness
+}
+
+void Board_LED_SetBrightness(uint16_t duty)
+{
+  if (duty > __HAL_TIM_GET_AUTORELOAD(&htim2)) {
+    duty = __HAL_TIM_GET_AUTORELOAD(&htim2);
+  }
+  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, duty);
 }
 
 // Read digital light sensor: return true when sensor reports light present

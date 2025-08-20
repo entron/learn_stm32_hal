@@ -12,11 +12,11 @@ extern "C" {
 void Board_Init(void);
 
 
-// LED configuration: change these macros to move the LED to another pin
+// LED configuration: single LED anode on PA0 (TIM2_CH1)
 #define LED_GPIO_PORT GPIOA
-#define LED_PIN  GPIO_PIN_1 | GPIO_PIN_2
-// Set to 1 if the LED is active low (MCU pin low turns LED on)
-#define LED_ACTIVE_LOW 1
+#define LED_PIN  GPIO_PIN_0
+// LED is active high (MCU pin high turns LED on)
+#define LED_ACTIVE_LOW 0
 
 // Keys/buttons configuration: B11 and B1
 #define KEY_GPIO_PORT GPIOB
@@ -33,6 +33,12 @@ void Board_SetLed(bool on);
 
 // Set specific LED pin to low (on) or high (off)
 void Board_SetLedPin(uint16_t pin, bool on);
+
+// LED PWM control (TIM2 CH1 on PA0)
+// Initialize PWM output for LED brightness control (called by Board_Init)
+void Board_LED_PWM_Init(void);
+// Set brightness 0..ARR (default ARR=999 for 1kHz PWM). 0=off, ARR=max.
+void Board_LED_SetBrightness(uint16_t duty);
 
 // Buzzer control
 // Initialize buzzer GPIO (call from Board_Init)
