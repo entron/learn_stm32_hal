@@ -15,19 +15,20 @@ static void Buzzer_Init(void);
 static void Light_Init(void);
 static void IR_Init(void);
 static void Timer3_Init(void);
-static void LED_PWM_TIM2_Init(void);
+static void SERVO_PWM_TIM2_CH2_Init(void);
+static void Servo_GPIO_Init(void);
 
 void Board_Init(void)
 {
   HAL_Init();                 // init HAL & SysTick
   SystemClock_Config();       // set system clocks
-  LED_Init();                 // init LED GPIOs (PA0 as AF_PP for TIM2_CH1)
+  LED_Init();                 // init LED GPIOs (PA0 as simple output)
   Keys_Init();                // init user keys (B11, B1)
   Buzzer_Init();              // init buzzer on PB12
   Light_Init();               // init digital light sensor on PB13
   IR_Init();                  // init through-beam IR sensor on PB14
   Timer3_Init();              // init TIM3 as 1 Hz timer (updates display)
-  LED_PWM_TIM2_Init();        // init TIM2 PWM for breathing LED
+  Servo_Init();               // init servo GPIO + TIM2 CH2 for 50Hz servo on PA1
   I2C1_Init();               // init I2C1 used for external peripherals
 }
 
@@ -92,10 +93,10 @@ static void LED_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-  // Configure PA0 as Alternate Function Push-Pull for TIM2_CH1 PWM output
+  // Configure PA0 as push-pull output for simple LED control
   GPIO_InitStruct.Pin   = LED_PIN; // PA0
-  GPIO_InitStruct.Mode  = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Mode  = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_GPIO_PORT, &GPIO_InitStruct);
 }
 
@@ -206,16 +207,22 @@ static void Timer3_Init(void)
   }
 }
 
-// Configure TIM2 CH1 (PA0) for PWM output at ~1 kHz, 1000 steps resolution
-static void LED_PWM_TIM2_Init(void)
+
+// Configure TIM2 CH2 (PA1) for 50 Hz PWM suitable for hobby servos.
+// We reuse TIM2 with PSC=8-1 -> 1 MHz tick (1 us). For 20 ms period, ARR=20000-1.
+static void SERVO_PWM_TIM2_CH2_Init(void)
 {
+  // Ensure TIM2 peripheral clock is enabled before HAL init
   __HAL_RCC_TIM2_CLK_ENABLE();
 
+  // Reconfigure base if not already at 1 MHz tick and ARR large enough for 20 ms
+  // We assume LED setup already set PSC to 7 and Period to 999 for 1 kHz. We'll
+  // move TIM2 to 50 Hz for servo use on CH2 and keep CH1 usable (lower freq LED OK).
+  // New config: PSC=8-1 -> 1 MHz, ARR=20000-1 -> 50 Hz
   htim2.Instance = TIM2;
-  // Timer clock: 8 MHz (APB1 prescaler = 1), set to 1 kHz PWM: PSC=8-1 -> 1 MHz, ARR=1000-1 -> 1 kHz
   htim2.Init.Prescaler = 8 - 1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 1000 - 1; // 0..999
+  htim2.Init.Period = SERVO_PWM_ARR - 1; // period in timer ticks (ARR)
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_PWM_Init(&htim2) != HAL_OK) {
@@ -224,31 +231,21 @@ static void LED_PWM_TIM2_Init(void)
 
   TIM_OC_InitTypeDef sConfigOC = {0};
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 0; // start off
+  sConfigOC.Pulse = 1500; // neutral 1.5 ms
+  // Pulse is specified in timer ticks (we use 1 tick = 1 us with PSC=8)
+  sConfigOC.Pulse = SERVO_US_NEUTRAL; // neutral in us (timer ticks)
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) {
+  if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_2) != HAL_OK) {
     Error_Handler();
   }
 
-  if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1) != HAL_OK) {
+  if (HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2) != HAL_OK) {
     Error_Handler();
   }
 }
 
-// Public helpers for LED PWM
-void Board_LED_PWM_Init(void)
-{
-  // Already initialized in Board_Init via LED_PWM_TIM2_Init(); keep function for API completeness
-}
-
-void Board_LED_SetBrightness(uint16_t duty)
-{
-  if (duty > __HAL_TIM_GET_AUTORELOAD(&htim2)) {
-    duty = __HAL_TIM_GET_AUTORELOAD(&htim2);
-  }
-  __HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, duty);
-}
+// LED PWM helpers removed; LED is controlled by Board_SetLed/Board_SetLedPin
 
 // Read digital light sensor: return true when sensor reports light present
 bool Board_Light_Read(void)
@@ -287,4 +284,33 @@ void SysTick_Handler(void) {
 void Error_Handler(void) {
   __disable_irq();
   while (1) { }
+}
+
+// --- Public Servo API ---
+void Servo_Init(void)
+{
+  // Initialize servo GPIO then configure TIM2 CH2 for servo PWM
+  Servo_GPIO_Init();
+  SERVO_PWM_TIM2_CH2_Init();
+}
+
+static void Servo_GPIO_Init(void)
+{
+  // Enable GPIOA clock and configure servo pin as AF push-pull
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = SERVO_PIN;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  HAL_GPIO_Init(SERVO_GPIO_PORT, &GPIO_InitStruct);
+}
+
+void Servo_WriteMicroseconds(uint16_t us)
+{
+  if (us < SERVO_US_MIN) us = SERVO_US_MIN;
+  if (us > SERVO_US_MAX) us = SERVO_US_MAX;
+  // CCRx (capture/compare register) holds the compare value for the channel
+  // which effectively sets the pulse width (duty) in timer ticks. We write
+  // the desired pulse width (in timer ticks/us) directly to CCR.
+  __HAL_TIM_SET_COMPARE(&htim2, SERVO_TIMER_CHANNEL, us);
 }
