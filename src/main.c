@@ -2,7 +2,7 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 #include <stdio.h>
- #include <stdint.h>
+#include <stdint.h>
 
 /* Button state shared between IRQ and main loop. Updated in
   HAL_GPIO_EXTI_Callback() (interrupt context) and read in the
@@ -35,21 +35,8 @@ int main(void)
   // Force an initial OLED refresh to show the starting states
   g_key_state_changed = true;
 
-  // Track elapsed time for 1-second updates
-  uint32_t last_tick = HAL_GetTick();
-
   for (;;)
   {
-    // 1 Hz timer update using HAL tick
-    uint32_t now = HAL_GetTick();
-    if ((now - last_tick) >= 1000U)
-    {
-      // handle possible drift if loop delays are long
-      last_tick += 1000U;
-      g_timer_seconds++;
-      g_key_state_changed = true; // trigger OLED refresh
-    }
-
     if (g_key_state_changed == true)
     {
       g_key_state_changed = false; // Reset flag
@@ -119,5 +106,15 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
       g_ir_counter++;
       g_key_state_changed = true; // reuse flag to refresh OLED
     }
+  }
+}
+
+// HAL timer period elapsed callback — called from TIM2 IRQ at 1 Hz.
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
+{
+  if (htim->Instance == TIM2)
+  {
+    g_timer_seconds++;
+    g_key_state_changed = true; // request OLED refresh in main loop
   }
 }

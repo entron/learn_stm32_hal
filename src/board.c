@@ -1,8 +1,10 @@
 #include "board.h"
 /* Include I2C HAL definitions */
 #include "stm32f1xx_hal_i2c.h"
+#include "stm32f1xx_hal_tim.h"
 
 I2C_HandleTypeDef hi2c1;
+TIM_HandleTypeDef htim2;
 
 static void I2C1_Init(void);
 
@@ -11,6 +13,7 @@ static void Keys_Init(void);
 static void Buzzer_Init(void);
 static void Light_Init(void);
 static void IR_Init(void);
+static void Timer2_Init(void);
 
 void Board_Init(void)
 {
@@ -21,6 +24,7 @@ void Board_Init(void)
   Buzzer_Init();              // init buzzer on PB12
   Light_Init();               // init digital light sensor on PB13
   IR_Init();                  // init through-beam IR sensor on PB14
+  Timer2_Init();              // init TIM2 as 1 Hz timer (updates display)
   I2C1_Init();               // init I2C1 used for external peripherals
 }
 
@@ -171,6 +175,31 @@ static void IR_Init(void)
   HAL_GPIO_Init(IRSENSOR_GPIO_PORT, &GPIO_InitStruct);
 
   /* EXTI15_10_IRQn already enabled in Keys_Init; line 14 will be handled there */
+}
+
+// Configure TIM2 to generate update interrupt at 1 Hz
+static void Timer2_Init(void)
+{
+  __HAL_RCC_TIM2_CLK_ENABLE();
+
+  htim2.Instance = TIM2;
+  // With HSI 8 MHz and APB1 prescaler = 1, TIM2 clock = 8 MHz
+  // Prescaler 8000-1 -> 1 kHz counter clock; Period 1000-1 -> 1 Hz update
+  htim2.Init.Prescaler = 8000 - 1;
+  htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim2.Init.Period = 1000 - 1;
+  htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+    Error_Handler();
+  }
+
+  HAL_NVIC_SetPriority(TIM2_IRQn, 3, 0);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+
+  if (HAL_TIM_Base_Start_IT(&htim2) != HAL_OK) {
+    Error_Handler();
+  }
 }
 
 // Read digital light sensor: return true when sensor reports light present

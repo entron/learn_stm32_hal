@@ -6,6 +6,7 @@
 
 #include "board.h"
 #include "stm32f1xx_hal.h"
+extern TIM_HandleTypeDef htim2;
 
 extern void Error_Handler(void);
 
@@ -70,6 +71,11 @@ void EXTI15_10_IRQHandler(void)
     for each pin so HAL_GPIO_EXTI_Callback() receives the event. */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
+}
+
+void TIM2_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim2);
 }
 
 /* NOTE: Implement HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) in your
