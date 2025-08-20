@@ -2,6 +2,7 @@
 #include "ssd1306.h"
 #include "ssd1306_fonts.h"
 #include <stdio.h>
+ #include <stdint.h>
 
 /* Button state shared between IRQ and main loop. Updated in
   HAL_GPIO_EXTI_Callback() (interrupt context) and read in the
@@ -11,6 +12,8 @@ volatile bool g_key_b1_pressed = false;
 volatile bool g_key_state_changed = false;
 // IR sensor counter: incremented from IRQ when beam is broken.
 volatile unsigned int g_ir_counter = 0;
+// Timer counter (seconds)
+volatile uint32_t g_timer_seconds = 0;
 
 int main(void)
 {
@@ -23,10 +26,6 @@ int main(void)
   // Initialize OLED (SSD1306)
   ssd1306_Init();
   ssd1306_Fill(Black);
-  ssd1306_SetCursor(10, 0);
-  // Title
-  char title[] = "SSD1306";
-  ssd1306_WriteString(title, Font_11x18, White);
   ssd1306_UpdateScreen();
 
   // Poll keys and control LEDs: B11 -> LED pin PA1, B1 -> LED pin PA2
@@ -36,8 +35,21 @@ int main(void)
   // Force an initial OLED refresh to show the starting states
   g_key_state_changed = true;
 
+  // Track elapsed time for 1-second updates
+  uint32_t last_tick = HAL_GetTick();
+
   for (;;)
   {
+    // 1 Hz timer update using HAL tick
+    uint32_t now = HAL_GetTick();
+    if ((now - last_tick) >= 1000U)
+    {
+      // handle possible drift if loop delays are long
+      last_tick += 1000U;
+      g_timer_seconds++;
+      g_key_state_changed = true; // trigger OLED refresh
+    }
+
     if (g_key_state_changed == true)
     {
       g_key_state_changed = false; // Reset flag
@@ -46,16 +58,21 @@ int main(void)
       bool disp_b11 = g_key_b11_pressed;
       bool disp_b1 = g_key_b1_pressed;
       unsigned int disp_counter = g_ir_counter; // snapshot of the counter
+      uint32_t disp_timer = g_timer_seconds; // snapshot of timer
+      char buf_timer[24];
       char buf1[16];
       char buf2[16];
       char buf3[20];
+      snprintf(buf_timer, sizeof(buf_timer), "Time: %lus", (unsigned long)disp_timer);
       snprintf(buf1, sizeof(buf1), "B11: %s", disp_b11 ? "ON" : "OFF");
       snprintf(buf2, sizeof(buf2), "B1:  %s", disp_b1 ? "ON" : "OFF");
       snprintf(buf3, sizeof(buf3), "Count: %u", disp_counter);
 
       ssd1306_Fill(Black);
-      ssd1306_SetCursor(10, 0);
-      ssd1306_WriteString(title, Font_11x18, White);
+      // Timer at the top in a larger font
+      ssd1306_SetCursor(0, 0);
+      ssd1306_WriteString(buf_timer, Font_11x18, White);
+      // Status lines
       ssd1306_SetCursor(0, 30);
       ssd1306_WriteString(buf1, Font_6x8, White);
       ssd1306_SetCursor(64, 30);
