@@ -65,7 +65,11 @@ void EXTI15_10_IRQHandler(void)
 {
   /* Handle PB11 (GPIO_PIN_11). If you add more EXTI lines in 10..15
      range, call HAL_GPIO_EXTI_IRQHandler() for those pins as well. */
+  /* Forward EXTI lines in 10..15 range. PB11 and PB14 are used by this
+    project (buttons on PB11, IR sensor on PB14). Call the HAL helper
+    for each pin so HAL_GPIO_EXTI_Callback() receives the event. */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
 }
 
 /* NOTE: Implement HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) in your

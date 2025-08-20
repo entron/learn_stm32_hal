@@ -46,6 +46,13 @@ void Board_Buzzer_Set(bool on);
 // Set to 1 if sensor DO is active high (DO = HIGH when light detected)
 #define LIGHT_SENSOR_ACTIVE_HIGH 0
 
+// Through-beam IR sensor (digital output) on PB14 used as an external
+// interrupt to count events (e.g. beam broken). Adjust pull/config
+// depending on your sensor wiring. By default we assume active-low
+// (pulled up, output goes LOW when beam is broken).
+#define IRSENSOR_GPIO_PORT GPIOB
+#define IRSENSOR_PIN GPIO_PIN_14
+
 // Initialize digital light sensor input (call from Board_Init)
 void Board_Light_Init(void);
 // Read digital light sensor (true = light detected)

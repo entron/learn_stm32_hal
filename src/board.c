@@ -10,6 +10,7 @@ static void LED_Init(void);
 static void Keys_Init(void);
 static void Buzzer_Init(void);
 static void Light_Init(void);
+static void IR_Init(void);
 
 void Board_Init(void)
 {
@@ -19,6 +20,7 @@ void Board_Init(void)
   Keys_Init();                // init user keys (B11, B1)
   Buzzer_Init();              // init buzzer on PB12
   Light_Init();               // init digital light sensor on PB13
+  IR_Init();                  // init through-beam IR sensor on PB14
   I2C1_Init();               // init I2C1 used for external peripherals
 }
 
@@ -154,6 +156,21 @@ static void Light_Init(void)
   // Use no pull by default; change to GPIO_PULLDOWN or GPIO_PULLUP as needed
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(LIGHT_SENSOR_GPIO_PORT, &GPIO_InitStruct);
+}
+
+// Initialize through-beam IR sensor input on PB14 as EXTI line 14.
+static void IR_Init(void)
+{
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Pin = IRSENSOR_PIN;
+  /* Assume sensor output is active-low when beam is broken; use pull-up */
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  HAL_GPIO_Init(IRSENSOR_GPIO_PORT, &GPIO_InitStruct);
+
+  /* EXTI15_10_IRQn already enabled in Keys_Init; line 14 will be handled there */
 }
 
 // Read digital light sensor: return true when sensor reports light present

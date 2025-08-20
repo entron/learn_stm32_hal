@@ -9,6 +9,8 @@
 volatile bool g_key_b11_pressed = false;
 volatile bool g_key_b1_pressed = false;
 volatile bool g_key_state_changed = false;
+// IR sensor counter: incremented from IRQ when beam is broken.
+volatile unsigned int g_ir_counter = 0;
 
 int main(void)
 {
@@ -43,10 +45,13 @@ int main(void)
       // Re-read current states
       bool disp_b11 = g_key_b11_pressed;
       bool disp_b1 = g_key_b1_pressed;
+      unsigned int disp_counter = g_ir_counter; // snapshot of the counter
       char buf1[16];
       char buf2[16];
+      char buf3[20];
       snprintf(buf1, sizeof(buf1), "B11: %s", disp_b11 ? "ON" : "OFF");
       snprintf(buf2, sizeof(buf2), "B1:  %s", disp_b1 ? "ON" : "OFF");
+      snprintf(buf3, sizeof(buf3), "Count: %u", disp_counter);
 
       ssd1306_Fill(Black);
       ssd1306_SetCursor(10, 0);
@@ -55,6 +60,8 @@ int main(void)
       ssd1306_WriteString(buf1, Font_6x8, White);
       ssd1306_SetCursor(64, 30);
       ssd1306_WriteString(buf2, Font_6x8, White);
+      ssd1306_SetCursor(0, 48);
+      ssd1306_WriteString(buf3, Font_6x8, White);
       ssd1306_UpdateScreen();
 
       // Update LEDs according to the stored button state
@@ -84,5 +91,16 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
   {
     g_key_b1_pressed = (HAL_GPIO_ReadPin(KEY_GPIO_PORT, GPIO_PIN_1) == GPIO_PIN_RESET);
     g_key_state_changed = true;
+  }
+  else if (GPIO_Pin == GPIO_PIN_14)
+  {
+    // IR sensor triggered on PB14. Assume active-low transition indicates beam broken.
+    // Increment counter on the falling edge (pin reads LOW). For simplicity we
+    // increment on any transition with a check to only count falling edges.
+    if (HAL_GPIO_ReadPin(IRSENSOR_GPIO_PORT, IRSENSOR_PIN) == GPIO_PIN_RESET)
+    {
+      g_ir_counter++;
+      g_key_state_changed = true; // reuse flag to refresh OLED
+    }
   }
 }
