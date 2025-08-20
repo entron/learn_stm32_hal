@@ -12,6 +12,7 @@
 #include "ir_sensor.h"
 #include "servo.h"
 #include "motor.h"
+#include "oled.h"
 
 #ifdef __cplusplus
 extern "C" {

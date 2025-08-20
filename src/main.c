@@ -1,8 +1,6 @@
 // Servo and Motor demo with button control
 // B1 controls servo angle, B11 controls motor speed
 #include "board.h"
-#include "ssd1306.h"
-#include "ssd1306_fonts.h"
 #include <stdio.h>
 
 // Global variables for control
@@ -12,17 +10,11 @@ static volatile bool button_b1_pressed = false;
 static volatile bool button_b11_pressed = false;
 
 static void OLED_ShowStatus(int angle, int8_t speed) {
-  char buf[64];
-  ssd1306_Fill(Black);
-  ssd1306_SetCursor(0, 0);
-  snprintf(buf, sizeof(buf), "Servo: %d°", angle);
-  ssd1306_WriteString(buf, Font_11x18, White);
-  ssd1306_SetCursor(0, 20);
-  snprintf(buf, sizeof(buf), "Motor: %d%%", speed);
-  ssd1306_WriteString(buf, Font_11x18, White);
-  ssd1306_SetCursor(0, 40);
-  ssd1306_WriteString("B1:Servo B11:Motor", Font_7x10, White);
-  ssd1306_UpdateScreen();
+  OLED_Clear();
+  OLED_Printf(0, 0, OLED_FONT_MEDIUM, false, "Servo: %d°", angle);
+  OLED_Printf(0, 20, OLED_FONT_MEDIUM, false, "Motor: %d%%", speed);
+  OLED_Printf(0, 40, OLED_FONT_SMALL, false, "B1:Servo B11:Motor");
+  OLED_Update();
 }
 
 // GPIO EXTI callback function - called when button is pressed/released
@@ -64,7 +56,7 @@ int main(void)
   Board_Init();
 
   /* Initialize OLED after I2C is ready */
-  ssd1306_Init();
+  OLED_Init();
 
   // Initialize servo and motor to initial positions
   Servo_WriteDegrees((float)servo_angle);
