@@ -10,8 +10,11 @@ extern "C" {
 #endif
 
 // OLED display configuration
-// The SSD1306 library uses I2C which is configured in board.h
-// Default I2C address is usually 0x3C or 0x3D (handled by ssd1306 library)
+// Uses I2C1 remapped to PB8 (SCL) and PB9 (SDA)
+// Default I2C address is 0x3C (handled by ssd1306 library)
+#define OLED_I2C_SCL_PIN GPIO_PIN_8
+#define OLED_I2C_SDA_PIN GPIO_PIN_9
+#define OLED_I2C_GPIO_PORT GPIOB
 
 // Initialize OLED display
 void OLED_Init(void);
