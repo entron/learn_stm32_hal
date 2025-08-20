@@ -3,6 +3,12 @@
 #include "board.h"
 #include <stdio.h>
 
+// Include only the components we actually use
+#include "keys.h"
+#include "servo.h"
+#include "motor.h"
+#include "oled.h"
+
 // Global variables for control
 static volatile int servo_angle = 0;
 static volatile int8_t motor_speed = 0;
@@ -53,10 +59,13 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 int main(void)
 {
-  Board_Init();
+  Board_Init();  // Initialize core system (HAL, clocks)
 
-  /* Initialize OLED after I2C is ready */
-  OLED_Init();
+  // Initialize only the components we need
+  Keys_Init();   // Initialize buttons (B1, B11)
+  Servo_Init();  // Initialize servo on PA1
+  Motor_Init();  // Initialize motor on PA2/PA4/PA5
+  OLED_Init();   // Initialize OLED display
 
   // Initialize servo and motor to initial positions
   Servo_WriteDegrees((float)servo_angle);

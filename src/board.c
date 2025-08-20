@@ -4,13 +4,7 @@ void Board_Init(void)
 {
   HAL_Init();                 // init HAL & SysTick
   SystemClock_Config();       // set system clocks
-  LED_Init();                 // init LED GPIOs (PA0 as simple output)
-  Keys_Init();                // init user keys (B11, B1)
-  Buzzer_Init();              // init buzzer on PB12
-  Light_Init();               // init digital light sensor on PB13
-  IR_Init();                  // init through-beam IR sensor on PB14
-  Servo_Init();               // init servo GPIO + TIM2 CH2 for 50Hz servo on PA1
-  Motor_Init();               // init motor GPIO + TIM2 CH3 for motor PWM on PA2
+  // Components are initialized individually in main.c as needed
 }
 
 void SystemClock_Config(void)
