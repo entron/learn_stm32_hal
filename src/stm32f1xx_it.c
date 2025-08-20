@@ -7,7 +7,6 @@
 #include "board.h"
 #include "stm32f1xx_hal.h"
 extern TIM_HandleTypeDef htim2;
-extern TIM_HandleTypeDef htim3;
 
 extern void Error_Handler(void);
 
@@ -81,7 +80,8 @@ void TIM2_IRQHandler(void)
 
 void TIM3_IRQHandler(void)
 {
-  HAL_TIM_IRQHandler(&htim3);
+  /* TIM3 removed from project; keep empty handler to satisfy vector table */
+  (void)0;
 }
 
 /* NOTE: Implement HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) in your

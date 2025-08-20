@@ -46,6 +46,8 @@ void Board_Buzzer_Set(bool on);
 void Servo_Init(void);
 // Set pulse width in microseconds (typical 1000..2000 us). Values are clamped.
 void Servo_WriteMicroseconds(uint16_t us);
+// Set servo position in degrees (0..180). Values are clamped.
+void Servo_WriteDegrees(float deg);
 
 // Servo pin definitions (use macros for consistency with other peripherals)
 #define SERVO_GPIO_PORT GPIOA
@@ -61,8 +63,6 @@ void Servo_WriteMicroseconds(uint16_t us);
 // HSI=8MHz and PSC=8 you'll get a 1 MHz timer tick (1 us per tick). ARR=20000 -> 20 ms.
 #define SERVO_PWM_PSC 8
 #define SERVO_PWM_ARR 20000
-
-// LED PWM removed
 
 // Light sensor (digital output) on PB13
 #define LIGHT_SENSOR_GPIO_PORT GPIOB
