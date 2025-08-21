@@ -40,6 +40,13 @@ void Light_Init(void)
     return;
   }
 
+  // Configure the specific channel for light sensor
+  ADC_ChannelConfTypeDef sConfig = {0};
+  sConfig.Channel = LIGHT_SENSOR_ADC_CHANNEL;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
+  HAL_ADC_ConfigChannel(&hadc1, &sConfig);
+
   // Calibrate ADC
   HAL_ADCEx_Calibration_Start(&hadc1);
 }
@@ -56,18 +63,7 @@ bool Board_Light_Read(void)
 
 // Read analog light sensor value (0-4095, 12-bit ADC)
 uint16_t Light_ReadAnalog(void)
-{
-  ADC_ChannelConfTypeDef sConfig = {0};
-  
-  // Configure ADC channel
-  sConfig.Channel = LIGHT_SENSOR_ADC_CHANNEL;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SamplingTime = ADC_SAMPLETIME_55CYCLES_5;
-  
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
-    return 0;
-  }
-  
+{  
   // Start ADC conversion
   if (HAL_ADC_Start(&hadc1) != HAL_OK) {
     return 0;
