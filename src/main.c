@@ -1,5 +1,6 @@
 // Servo and Motor demo with button control and light sensor
 // B1 controls servo angle, B11 controls motor speed
+// Light sensor readings are sent via USART1 (PA9=TX, PA10=RX) at 115200 baud
 #include "board.h"
 #include <stdio.h>
 
@@ -9,6 +10,7 @@
 #include "motor.h"
 #include "oled.h"
 #include "light_sensor.h"
+#include "usart.h"
 
 // Global variables for control
 static volatile int servo_angle = 0;
@@ -72,6 +74,13 @@ int main(void)
   Motor_Init();      // Initialize motor on PA2/PA4/PA5
   OLED_Init();       // Initialize OLED display
   Light_Init();      // Initialize light sensor ADC on PA7
+  USART_Init();      // Initialize USART1 for serial communication
+
+  // Send startup message
+  USART_Printf("STM32F103C8 Light Sensor Monitor\r\n");
+  USART_Printf("Sending light sensor readings every 1 second\r\n");
+  USART_Printf("Format: timestamp_ms,light_percent,light_raw\r\n");
+  USART_Printf("---\r\n");
 
   // Initialize servo and motor to initial positions
   Servo_WriteDegrees((float)servo_angle);
@@ -80,6 +89,7 @@ int main(void)
 
   // Main loop - check for button presses and update servo/motor
   uint32_t last_display_update = 0;
+  uint32_t last_usart_send = 0;
   while (1) {
     uint32_t current_time = HAL_GetTick();
     
@@ -126,6 +136,17 @@ int main(void)
     if (current_time - last_display_update >= 500) {
       OLED_ShowStatus(servo_angle, motor_speed);
       last_display_update = current_time;
+    }
+    
+    // Send light sensor data via USART every 1000ms (1 second)
+    if (current_time - last_usart_send >= 1000) {
+      uint16_t light_raw = Light_ReadAnalog();
+      uint8_t light_percent = Light_ReadPercent();
+      
+      // Send CSV format: timestamp,light_percent,light_raw
+      USART_Printf("%lu,%u,%u\r\n", current_time, light_percent, light_raw);
+      
+      last_usart_send = current_time;
     }
     
     // Small delay to prevent busy waiting
