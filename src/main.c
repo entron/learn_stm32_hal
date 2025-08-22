@@ -23,10 +23,9 @@ static void OLED_ShowStatus(int angle, int8_t speed) {
   uint8_t light_percent = Light_ReadPercent();
   
   OLED_Clear();
-  OLED_Printf(0, 0, OLED_FONT_MEDIUM, false, "Servo: %d°", angle);
-  OLED_Printf(0, 15, OLED_FONT_MEDIUM, false, "Motor: %d%%", speed);
+  OLED_Printf(0, 0, OLED_FONT_SMALL, false, "Servo: %d°", angle);
+  OLED_Printf(0, 15, OLED_FONT_SMALL, false, "Motor: %d%%", speed);
   OLED_Printf(0, 30, OLED_FONT_SMALL, false, "Light: %d%% (%d)", light_percent, light_raw);
-  OLED_Printf(0, 45, OLED_FONT_SMALL, false, "B1:Servo B11:Motor");
   OLED_Update();
 }
 
