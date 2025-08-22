@@ -29,7 +29,7 @@ This project demonstrates various embedded programming concepts including:
 | **DC Motor** | PA2, PA4, PA5 | PWM + Direction control | TB6612FNG motor driver |
 | **Light Sensor** | PA7 | ADC input (ADC1_CH7) | Analog photoresistor |
 | **OLED Display** | PB8, PB9 | I2C (SCL, SDA) | 128x64 SSD1306 |
-| **UART** | PA9, PA10 | TX, RX | 115200 baud for data logging |
+| **UART** | PA9, PA10 | TX, RX | 115200 baud for data logging + interactive commands |
 | **LED** | PA0 | Digital output | Built-in LED |
 | **Buzzer** | PB12 | Digital output | Active low |
 | **IR Sensor** | PB14 | Digital input with interrupt | Beam break detection |
@@ -122,6 +122,7 @@ A demonstration application that combines multiple peripherals:
 - String transmission functions
 - Printf-style formatted output
 - Data logging capabilities
+ - Interrupt-driven single-line command parser (control servo & motor)
 
 ### Additional Components
 - **LED Control** (`led.h/c`): Simple GPIO control for status indication
@@ -160,6 +161,37 @@ pio device monitor --baud 115200
    - **B1 (PB1)**: Cycle servo position
    - **B11 (PB11)**: Cycle motor speed
 4. Light sensor data is continuously displayed and logged via UART
+5. (New) You can also control servo angle and motor speed over UART
+
+### Interactive UART Command Interface
+
+An interrupt-driven line parser lets you send simple textual commands (ending with LF / Enter). Works with any serial terminal (e.g. `pio device monitor`, CuteCom, PuTTY, minicom).
+
+Supported commands:
+
+```
+help              # list commands
+servo <0-180>     # set servo angle in degrees
+motor <-100..100> # set motor speed percentage (negative = reverse)
+```
+
+Example CuteCom session (115200 baud, 8N1, LF line ending):
+```
+> help
+Commands:
+    servo <0-180>
+    motor <-100..100> (percent)
+    help
+> servo 45
+OK SERVO 45
+> motor -30
+OK MOTOR -30
+```
+
+Notes:
+- Either CR+LF or just LF works; empty lines are ignored.
+- Lines longer than 63 chars are discarded (buffer = 64 bytes).
+- Characters are captured via `HAL_UART_RxCpltCallback` without echo to avoid overruns.
 
 ### Serial Data Logging
 Connect to UART (115200 baud) to receive CSV data:
@@ -200,8 +232,8 @@ B1:Servo B11:Motor
 - **SysTick**: 1ms system timing
 
 ### Memory Usage
-- **Flash**: ~21KB (32.7% of 64KB)
-- **RAM**: ~1.4KB (6.7% of 20KB)
+- **Flash**: ~29.6KB (≈45% of 64KB) after adding command parser
+- **RAM**: ~1.9KB (≈9% of 20KB)
 
 ## Development Notes
 
