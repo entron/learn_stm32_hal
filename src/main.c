@@ -92,6 +92,41 @@ int main(void)
   uint32_t last_usart_send = 0;
   while (1) {
     uint32_t current_time = HAL_GetTick();
+
+    // Check for command line over USART
+    if (USART_LineAvailable()) {
+      char cmd[64];
+      USART_GetLine(cmd, sizeof(cmd));
+      // parse: servo <deg> | motor <signed%>
+      int value;
+      if (sscanf(cmd, "servo %d", &value) == 1) {
+        if (value < 0) {
+          value = 0;
+        }
+        if (value > 180) {
+          value = 180;
+        }
+        servo_angle = value;
+        Servo_WriteDegrees((float)servo_angle);
+        USART_Printf("OK SERVO %d\r\n", servo_angle);
+        OLED_ShowStatus(servo_angle, motor_speed);
+      } else if (sscanf(cmd, "motor %d", &value) == 1) {
+        if (value > 100) {
+          value = 100;
+        }
+        if (value < -100) {
+          value = -100;
+        }
+        motor_speed = (int8_t)value;
+        Motor_SetSpeed(motor_speed);
+        USART_Printf("OK MOTOR %d\r\n", motor_speed);
+        OLED_ShowStatus(servo_angle, motor_speed);
+      } else if (strcmp(cmd, "help") == 0) {
+        USART_Printf("Commands:\r\n  servo <0-180>\r\n  motor <-100..100> (percent)\r\n  help\r\n");
+      } else if (cmd[0] != '\0') {
+        USART_Printf("ERR Unknown cmd: %s\r\n", cmd);
+      }
+    }
     
     if (button_b1_pressed) {
       button_b1_pressed = false;  // Clear the flag

@@ -23,6 +23,11 @@ void USART_SendData(uint8_t *data, uint16_t size);
 void USART_Printf(const char *format, ...);
 void USART_Start(void);
 
+// Non-blocking line input helper (simple single-buffer implementation)
+// Call USART_LineAvailable() in main loop; if non-zero, fetch with USART_GetLine().
+int USART_LineAvailable(void);
+void USART_GetLine(char *dest, size_t maxlen);
+
 #ifdef __cplusplus
 }
 #endif

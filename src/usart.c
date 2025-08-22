@@ -1,6 +1,7 @@
 #include "usart.h"
 #include "board.h"
 #include <stdarg.h>
+#include <ctype.h>
 
 // USART handle (global so IRQ handler in stm32f1xx_it.c can access it)
 UART_HandleTypeDef huart1;
@@ -84,15 +85,48 @@ int _write(int file, char *ptr, int len)
 
 static uint8_t rx_byte;
 
+// Line buffer (simple single-buffer queue)
+#define USART_LINE_BUF_SIZE 64
+static char line_buf[USART_LINE_BUF_SIZE];
+static volatile uint8_t line_len = 0;        // current building length
+static volatile uint8_t line_ready = 0;      // flag when a full line is ready
+
+int USART_LineAvailable(void) {
+    return line_ready; // 1 if a line is ready
+}
+
+void USART_GetLine(char *dest, size_t maxlen) {
+    if (!line_ready) { if (maxlen) dest[0] = '\0'; return; }
+    size_t n = line_len;
+    if (n >= maxlen) n = maxlen - 1;
+    memcpy(dest, line_buf, n);
+    dest[n] = '\0';
+    line_len = 0;
+    line_ready = 0;
+}
+
 void USART_Start(void) {
     HAL_UART_Receive_IT(&huart1, &rx_byte, 1); // start RX
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *h) {
     if (h->Instance == USART1) {
-        // echo back
-        HAL_UART_Transmit(&huart1, &rx_byte, 1, 10);
-        // re-arm
-        HAL_UART_Receive_IT(&huart1, &rx_byte, 1);
+        uint8_t c = rx_byte;
+        if (!line_ready) {
+            if (c == '\r' || c == '\n') {
+                if (line_len > 0) { // only finalize non-empty lines
+                    line_buf[line_len] = '\0';
+                    line_ready = 1; // make available
+                } // else ignore stray line endings
+            } else {
+                if (line_len < (USART_LINE_BUF_SIZE - 1)) {
+                    line_buf[line_len++] = (char)c;
+                } else {
+                    // overflow: flush buffer
+                    line_len = 0;
+                }
+            }
+        }
+        HAL_UART_Receive_IT(&huart1, &rx_byte, 1); // re-arm reception quickly
     }
 }
