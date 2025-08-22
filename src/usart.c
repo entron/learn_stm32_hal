@@ -2,8 +2,8 @@
 #include "board.h"
 #include <stdarg.h>
 
-// USART handle
-static UART_HandleTypeDef huart1;
+// USART handle (global so IRQ handler in stm32f1xx_it.c can access it)
+UART_HandleTypeDef huart1;
 
 // Initialize USART1 for serial communication
 // PA9  = TX, PA10 = RX, 115200 baud, 8N1
@@ -42,6 +42,10 @@ void USART_Init(void)
         // Initialization Error
         Error_Handler();
     }
+
+    // Enable USART1 interrupt in NVIC (required for HAL_UART_Receive_IT)
+    HAL_NVIC_SetPriority(USART1_IRQn, 3, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
 // Send a string via USART
@@ -76,3 +80,19 @@ int _write(int file, char *ptr, int len)
     return len;
 }
 #endif
+
+
+static uint8_t rx_byte;
+
+void USART_Start(void) {
+    HAL_UART_Receive_IT(&huart1, &rx_byte, 1); // start RX
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *h) {
+    if (h->Instance == USART1) {
+        // echo back
+        HAL_UART_Transmit(&huart1, &rx_byte, 1, 10);
+        // re-arm
+        HAL_UART_Receive_IT(&huart1, &rx_byte, 1);
+    }
+}

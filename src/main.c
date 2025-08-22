@@ -74,6 +74,7 @@ int main(void)
   OLED_Init();       // Initialize OLED display
   Light_Init();      // Initialize light sensor ADC on PA7
   USART_Init();      // Initialize USART1 for serial communication
+  USART_Start();
 
   // Send startup message
   USART_Printf("STM32F103C8 Light Sensor Monitor\r\n");

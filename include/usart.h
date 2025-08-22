@@ -21,6 +21,7 @@ void USART_Init(void);
 void USART_SendString(const char *str);
 void USART_SendData(uint8_t *data, uint16_t size);
 void USART_Printf(const char *format, ...);
+void USART_Start(void);
 
 #ifdef __cplusplus
 }
