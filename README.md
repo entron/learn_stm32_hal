@@ -2,8 +2,10 @@
 
 A simple learning project for the STM32F103C8 microcontroller (Blue Pill board), featuring modular component drivers and a practical demonstration application.
 
-I followed the courses 【STM32入门教程-2023版 细致讲解 中文字幕】 https://www.bilibili.com/video/BV1th411z7sn/?share_source=copy_web
-but used VS Code + PlatformIO + HAL instead of the original dev environment and libs to make it more modern and easier to learn.
+I followed the course [【STM32入门教程-2023版 细致讲解 中文字幕】](https://www.bilibili.com/video/BV1th411z7sn/?share_source=copy_web),
+but used VS Code + PlatformIO + HAL instead of the DEV environment and libs used in the course to make it more modern and easier to learn.
+
+You can start from the first commit and following one by one along with the course.
 
 ## Overview
 
